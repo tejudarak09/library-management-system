@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Books - Library Management System</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+    <div class="nav-inner">
+        <a class="brand" href="index.html"><span class="brand-mark">📚</span> Library Management</a>
+        <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="books.html" class="active">Books</a>
+            <a href="members.html">Members</a>
+            <a href="borrow.html">Borrow / Return</a>
+        </nav>
+    </div>
+</header>
+
+<main class="container">
+    <div class="page-head">
+        <h1>📖 Books</h1>
+        <p>Catalogue every title in the collection.</p>
+    </div>
+
+    <section class="card">
+        <h2><span class="h2-icon">➕</span> Add a Book</h2>
+        <form id="bookForm">
+            <div class="form-row">
+                <div class="field">
+                    <label for="title">Title *</label>
+                    <input id="title" placeholder="e.g. Clean Code" required>
+                </div>
+                <div class="field">
+                    <label for="author">Author *</label>
+                    <input id="author" placeholder="e.g. Robert C. Martin" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="field">
+                    <label for="isbn">ISBN</label>
+                    <input id="isbn" placeholder="e.g. 9780132350884">
+                </div>
+                <div class="field">
+                    <label for="category">Category</label>
+                    <input id="category" placeholder="e.g. Programming">
+                </div>
+                <div class="field">
+                    <label for="totalCopies">Total copies</label>
+                    <input id="totalCopies" type="number" min="1" value="1">
+                </div>
+            </div>
+            <button type="submit">Add Book</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2><span class="h2-icon">🔎</span> Catalogue</h2>
+        <div class="searchbar">
+            <input id="searchInput" placeholder="Search by title or author...">
+            <button type="button" onclick="searchBooks()">Search</button>
+            <button type="button" class="muted" onclick="loadBooks()">Reset</button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>ID</th><th>Title</th><th>Author</th><th>ISBN</th><th>Category</th><th>Available</th><th></th></tr>
+                </thead>
+                <tbody id="bookTable"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">Library Management System · Java · Spring Boot · MySQL</footer>
+
+<script>
+const API = '/api/books';
+
+async function loadBooks() {
+    const res = await fetch(API);
+    renderBooks(await res.json());
+}
+
+function renderBooks(books) {
+    const tbody = document.getElementById('bookTable');
+    tbody.innerHTML = books.map(b => `
+        <tr>
+            <td class="id-cell">${b.id}</td>
+            <td><span class="title-strong">${escapeHtml(b.title)}</span></td>
+            <td>${escapeHtml(b.author)}</td>
+            <td>${b.isbn || '-'}</td>
+            <td>${b.category || '-'}</td>
+            <td>${b.availableCopies} / ${b.totalCopies}</td>
+            <td><button class="danger small" onclick="deleteBook(${b.id})">Delete</button></td>
+        </tr>`).join('');
+}
+
+async function searchBooks() {
+    const q = document.getElementById('searchInput').value.trim();
+    const res = await fetch(API + '/search?title=' + encodeURIComponent(q) +
+                            '&author=' + encodeURIComponent(q));
+    renderBooks(await res.json());
+}
+
+document.getElementById('bookForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const total = parseInt(document.getElementById('totalCopies').value) || 1;
+    const payload = {
+        title: document.getElementById('title').value.trim(),
+        author: document.getElementById('author').value.trim(),
+        isbn: document.getElementById('isbn').value.trim() || null,
+        category: document.getElementById('category').value.trim() || null,
+        totalCopies: total,
+        availableCopies: total
+    };
+    const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    if (res.ok) { e.target.reset(); loadBooks(); }
+    else alert('Error: ' + await res.text());
+});
+
+async function deleteBook(id) {
+    if (!confirm('Delete this book?')) return;
+    const res = await fetch(API + '/' + id, { method: 'DELETE' });
+    if (res.ok) loadBooks();
+    else alert('Error: ' + await res.text());
+}
+
+function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+loadBooks();
+</script>
+</body>
+</html>

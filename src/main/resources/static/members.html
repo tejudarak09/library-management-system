@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Members - Library Management System</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+    <div class="nav-inner">
+        <a class="brand" href="index.html"><span class="brand-mark">📚</span> Library Management</a>
+        <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="books.html">Books</a>
+            <a href="members.html" class="active">Members</a>
+            <a href="borrow.html">Borrow / Return</a>
+        </nav>
+    </div>
+</header>
+
+<main class="container">
+    <div class="page-head">
+        <h1>👥 Members</h1>
+        <p>Everyone with a library card.</p>
+    </div>
+
+    <section class="card">
+        <h2><span class="h2-icon">➕</span> Add a Member</h2>
+        <form id="memberForm">
+            <div class="form-row">
+                <div class="field">
+                    <label for="name">Full name *</label>
+                    <input id="name" placeholder="e.g. Teju Sharma" required>
+                </div>
+                <div class="field">
+                    <label for="email">Email *</label>
+                    <input id="email" type="email" placeholder="e.g. teju@example.com" required>
+                </div>
+                <div class="field">
+                    <label for="phone">Phone</label>
+                    <input id="phone" placeholder="e.g. 98765 43210">
+                </div>
+            </div>
+            <button type="submit">Add Member</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2><span class="h2-icon">🔎</span> Directory</h2>
+        <div class="searchbar">
+            <input id="searchInput" placeholder="Search by name...">
+            <button type="button" onclick="searchMembers()">Search</button>
+            <button type="button" class="muted" onclick="loadMembers()">Reset</button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Member Since</th><th></th></tr>
+                </thead>
+                <tbody id="memberTable"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">Library Management System · Java · Spring Boot · MySQL</footer>
+
+<script>
+const API = '/api/members';
+
+async function loadMembers() {
+    const res = await fetch(API);
+    renderMembers(await res.json());
+}
+
+function renderMembers(members) {
+    const tbody = document.getElementById('memberTable');
+    tbody.innerHTML = members.map(m => `
+        <tr>
+            <td class="id-cell">${m.id}</td>
+            <td><span class="title-strong">${escapeHtml(m.name)}</span></td>
+            <td>${escapeHtml(m.email)}</td>
+            <td>${escapeHtml(m.phone) || '-'}</td>
+            <td>${m.membershipDate || '-'}</td>
+            <td><button class="danger small" onclick="deleteMember(${m.id})">Delete</button></td>
+        </tr>`).join('');
+}
+
+async function searchMembers() {
+    const q = document.getElementById('searchInput').value.trim();
+    if (!q) { loadMembers(); return; }
+    const res = await fetch(API + '/search?name=' + encodeURIComponent(q));
+    renderMembers(await res.json());
+}
+
+document.getElementById('memberForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+        name: document.getElementById('name').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        phone: document.getElementById('phone').value.trim() || null
+    };
+    const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    if (res.ok) { e.target.reset(); loadMembers(); }
+    else alert('Error: ' + await res.text());
+});
+
+async function deleteMember(id) {
+    if (!confirm('Delete this member?')) return;
+    const res = await fetch(API + '/' + id, { method: 'DELETE' });
+    if (res.ok) loadMembers();
+    else alert('Error: ' + await res.text());
+}
+
+function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+loadMembers();
+</script>
+</body>
+</html>

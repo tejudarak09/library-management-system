@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management System</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+    <div class="nav-inner">
+        <a class="brand" href="index.html"><span class="brand-mark">📚</span> Library Management</a>
+        <nav class="nav-links">
+            <a href="index.html" class="active">Home</a>
+            <a href="books.html">Books</a>
+            <a href="members.html">Members</a>
+            <a href="borrow.html">Borrow / Return</a>
+        </nav>
+    </div>
+</header>
+
+<main class="container">
+    <section class="hero">
+        <div>
+            <h1>Welcome back to the library 👋</h1>
+            <p>Manage books, members and borrowing records — everything in one place.</p>
+        </div>
+        <div class="hero-art">📖</div>
+    </section>
+
+    <section class="stats">
+        <div class="stat" style="--stat-accent:#818cf8; --stat-soft:#eef2ff;">
+            <div class="icon">📚</div>
+            <div><div class="num" id="statBooks">0</div><div class="label">Total Books</div></div>
+        </div>
+        <div class="stat" style="--stat-accent:#2dd4bf; --stat-soft:#ccfbf1;">
+            <div class="icon">👥</div>
+            <div><div class="num" id="statMembers">0</div><div class="label">Members</div></div>
+        </div>
+        <div class="stat" style="--stat-accent:#fbbf24; --stat-soft:#fef3c7;">
+            <div class="icon">🔄</div>
+            <div><div class="num" id="statBorrowed">0</div><div class="label">Books Borrowed</div></div>
+        </div>
+        <div class="stat" style="--stat-accent:#fb7185; --stat-soft:#fee2e2;">
+            <div class="icon">⚠️</div>
+            <div><div class="num" id="statOverdue">0</div><div class="label">Overdue</div></div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2><span class="h2-icon">⚡</span> Quick actions</h2>
+        <div class="action-row">
+            <a class="btn" href="books.html">📖&nbsp; Manage Books</a>
+            <a class="btn" href="members.html">👥&nbsp; Manage Members</a>
+            <a class="btn success" href="borrow.html">🔄&nbsp; Borrow / Return</a>
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">Library Management System · Java · Spring Boot · MySQL</footer>
+
+<script>
+const API = '/api';
+
+async function loadStats() {
+    try {
+        const [books, members, records, overdue] = await Promise.all([
+            fetch(API + '/books').then(r => r.json()),
+            fetch(API + '/members').then(r => r.json()),
+            fetch(API + '/borrow').then(r => r.json()),
+            fetch(API + '/borrow/overdue').then(r => r.json())
+        ]);
+        document.getElementById('statBooks').textContent = books.length;
+        document.getElementById('statMembers').textContent = members.length;
+        document.getElementById('statBorrowed').textContent =
+            records.filter(r => r.status === 'BORROWED').length;
+        document.getElementById('statOverdue').textContent = overdue.length;
+    } catch (e) {
+        console.error('Could not load stats (is the backend running?)', e);
+    }
+}
+loadStats();
+</script>
+</body>
+</html>

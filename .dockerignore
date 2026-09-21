@@ -1,0 +1,8 @@
+# Don't send build output or VCS metadata into the Docker build context
+target/
+.git/
+.gitignore
+.idea/
+*.iml
+.vscode/
+.DS_Store

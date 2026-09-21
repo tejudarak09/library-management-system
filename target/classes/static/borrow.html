@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Borrow / Return - Library Management System</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+    <div class="nav-inner">
+        <a class="brand" href="index.html"><span class="brand-mark">📚</span> Library Management</a>
+        <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="books.html">Books</a>
+            <a href="members.html">Members</a>
+            <a href="borrow.html" class="active">Borrow / Return</a>
+        </nav>
+    </div>
+</header>
+
+<main class="container">
+    <div class="page-head">
+        <h1>🔄 Borrow / Return</h1>
+        <p>Issue books and track every loan.</p>
+    </div>
+
+    <section class="card">
+        <h2><span class="h2-icon">📤</span> Borrow a Book</h2>
+        <p class="hint">Tip: find the numeric IDs on the Books and Members pages.</p>
+        <form id="borrowForm">
+            <div class="form-row">
+                <div class="field">
+                    <label for="bookId">Book ID *</label>
+                    <input id="bookId" type="number" min="1" placeholder="e.g. 1" required>
+                </div>
+                <div class="field">
+                    <label for="memberId">Member ID *</label>
+                    <input id="memberId" type="number" min="1" placeholder="e.g. 2" required>
+                </div>
+            </div>
+            <button type="submit" class="success">Borrow Book</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2><span class="h2-icon">🧾</span> Borrowing Records</h2>
+        <div class="searchbar">
+            <button type="button" onclick="loadRecords()">All Records</button>
+            <button type="button" class="warn" onclick="loadOverdue()">Overdue Only</button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>ID</th><th>Book</th><th>Member</th><th>Borrowed</th><th>Due</th><th>Returned</th><th>Status</th><th></th></tr>
+                </thead>
+                <tbody id="recordTable"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">Library Management System · Java · Spring Boot · MySQL</footer>
+
+<script>
+const API = '/api/borrow';
+
+async function loadRecords() {
+    const res = await fetch(API);
+    renderRecords(await res.json());
+}
+
+async function loadOverdue() {
+    const res = await fetch(API + '/overdue');
+    renderRecords(await res.json());
+}
+
+function renderRecords(records) {
+    const tbody = document.getElementById('recordTable');
+    tbody.innerHTML = records.map(r => {
+        const status = r.status.toLowerCase();
+        const action = r.status === 'BORROWED'
+            ? `<button class="success small" onclick="returnBook(${r.id})">Return</button>` : '';
+        return `
+        <tr>
+            <td class="id-cell">${r.id}</td>
+            <td><span class="title-strong">${escapeHtml(r.book?.title)}</span> <span style="color:#8b9bb8;">(ID ${r.book?.id})</span></td>
+            <td>${escapeHtml(r.member?.name)} <span style="color:#8b9bb8;">(ID ${r.member?.id})</span></td>
+            <td>${r.borrowDate || '-'}</td>
+            <td>${r.dueDate || '-'}</td>
+            <td>${r.returnDate || '-'}</td>
+            <td><span class="badge ${status}">${r.status}</span></td>
+            <td>${action}</td>
+        </tr>`;
+    }).join('');
+}
+
+document.getElementById('borrowForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+        bookId: parseInt(document.getElementById('bookId').value),
+        memberId: parseInt(document.getElementById('memberId').value)
+    };
+    const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    if (res.ok) { e.target.reset(); loadRecords(); }
+    else alert('Error: ' + await res.text());
+});
+
+async function returnBook(id) {
+    const res = await fetch(API + '/' + id + '/return', { method: 'PUT' });
+    if (res.ok) loadRecords();
+    else alert('Error: ' + await res.text());
+}
+
+function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+loadRecords();
+</script>
+</body>
+</html>
